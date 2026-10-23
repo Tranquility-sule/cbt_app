@@ -1,0 +1,19 @@
+# Database and backups (contain real student data)
+*.db
+*.db-wal
+*.db-shm
+instance/
+backups/
+
+# Generated credential sheets
+student_logins_*.xlsx
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Uploaded profile photos
+static/uploads/profile_photos/*
+!static/uploads/profile_photos/.gitkeep
