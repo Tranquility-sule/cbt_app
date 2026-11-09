@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Clean Duplicates{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Admin</div>
+        <h2>Duplicate Students</h2>
+    </div>
+    <a href="{{ url_for('admin.list_students') }}" class="btn btn-outline">Back to Students</a>
+</div>
+
+{% if plan %}
+<div class="card">
+    <p class="text-muted">
+        These names appear more than once. The accounts marked <strong>Keep</strong> stay
+        (anyone who has written an exam or already logged in is always kept; otherwise the
+        lowest registration number). Accounts marked <strong>Delete</strong> have no exam
+        history and will be removed.
+    </p>
+    <table>
+        <tr><th>Name</th><th>Reg No.</th><th>Action</th></tr>
+        {% for keep, delete in plan %}
+            {% for s in keep %}<tr><td>{{ s.name }}</td><td class="mono">{{ s.reg_no }}</td><td><span class="badge badge-success">Keep</span></td></tr>{% endfor %}
+            {% for s in delete %}<tr><td>{{ s.name }}</td><td class="mono">{{ s.reg_no }}</td><td><span class="badge badge-gold">Delete</span></td></tr>{% endfor %}
+        {% endfor %}
+    </table>
+    <form method="POST" onsubmit="return confirm('Delete all accounts marked Delete? This cannot be undone.');" style="margin-top:16px;">
+        <button class="btn btn-danger" type="submit">Delete Marked Duplicates</button>
+    </form>
+</div>
+{% else %}
+<div class="card">
+    <p>No duplicate names found. Next, use <strong>Fresh Credentials List</strong> on the Students page to download one clean list.</p>
+</div>
+{% endif %}
+{% endblock %}

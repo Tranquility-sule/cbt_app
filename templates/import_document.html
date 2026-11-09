@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Import Questions from Document{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">{{ exam.title }}</div>
+        <h2>Import Questions from Word or PDF</h2>
+    </div>
+</div>
+
+<div class="card">
+    <p class="text-muted">
+        Upload a <code>.docx</code> or <code>.pdf</code> file containing objective
+        questions, and it'll be scanned for questions in this format:
+    </p>
+    <pre style="background:var(--paper);padding:14px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;overflow-x:auto;">1. What is the capital of Nigeria?
+A. Lagos
+B. Abuja
+C. Kano
+D. Ibadan
+Answer: B</pre>
+    <p class="text-muted">
+        Numbering can use "1." or "1)". Options A-E can use "A." or "A)".
+        The "Answer:" line is optional — for Word documents, a <strong>bolded</strong>
+        option is also recognized as the correct answer if no Answer line is given.
+        You'll get a chance to review and fix every detected answer before anything
+        is saved.
+    </p>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Document (.docx or .pdf)</label>
+        <input type="file" name="document" accept=".docx,.pdf" required>
+        <br><br>
+        <button class="btn" type="submit">Scan Document</button>
+    </form>
+</div>
+
+<a href="{{ url_for('teacher.edit_exam', exam_id=exam.id) }}" class="btn btn-outline">Back to Exam</a>
+{% endblock %}

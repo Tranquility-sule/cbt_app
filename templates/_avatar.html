@@ -1,0 +1,10 @@
+{# Usage: {% with avatar_user=current_user, avatar_size=40 %}{% include "_avatar.html" %}{% endwith %} #}
+{% set _size = avatar_size|default(40) %}
+{% if avatar_user.profile_photo %}
+<img src="{{ url_for('static', filename='uploads/profile_photos/' + avatar_user.profile_photo) }}"
+     class="avatar-photo" style="width:{{ _size }}px;height:{{ _size }}px;">
+{% else %}
+<span class="avatar-initials" style="width:{{ _size }}px;height:{{ _size }}px;font-size:{{ (_size / 2.4)|round|int }}px;">
+    {{ avatar_user.name[0]|upper if avatar_user.name else "?" }}
+</span>
+{% endif %}

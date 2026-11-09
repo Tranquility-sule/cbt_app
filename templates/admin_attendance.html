@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Attendance - {{ exam.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Attendance Register</div>
+        <h2>{{ exam.title }}</h2>
+    </div>
+    <a href="{{ url_for('admin.export_attendance', exam_id=exam.id) }}" class="btn">Download (Excel)</a>
+</div>
+<div class="card">
+    <table>
+        <tr><th>S/N</th><th>Name</th><th>Reg No.</th><th>Checked In At</th></tr>
+        {% for r in records %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ r.name }}</td>
+            <td class="mono">{{ r.reg_no }}</td>
+            <td class="mono">{{ r.checked_in_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-muted">No students have started this exam yet.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Results - {{ exam.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Results</div>
+        <h2>{{ exam.title }}</h2>
+    </div>
+</div>
+
+<div class="card">
+    <form method="POST" action="{{ url_for('teacher.toggle_publish', exam_id=exam.id) }}" style="display:inline;">
+        <button class="btn" type="submit">
+            {{ "Unpublish Results" if exam.results_published else "Publish Results to Students" }}
+        </button>
+    </form>
+    <a href="{{ url_for('teacher.export_csv', exam_id=exam.id) }}" class="btn btn-outline">Export CSV</a>
+    <a href="{{ url_for('teacher.export_xlsx', exam_id=exam.id) }}" class="btn btn-outline">Download Results (Excel)</a>
+    <a href="{{ url_for('admin.export_attendance', exam_id=exam.id) }}" class="btn btn-outline">Download Attendance (Excel)</a>
+</div>
+
+<div class="card">
+    <h3>Summary</h3>
+    <div class="stat-row">
+        <div class="stat"><span class="stat-value">{{ stats.count }}</span><span class="stat-label">Submissions</span></div>
+        <div class="stat"><span class="stat-value">{{ stats.average }} / {{ stats.total_marks|round|int }}</span><span class="stat-label">Average</span></div>
+        <div class="stat"><span class="stat-value">{{ stats.highest|round|int }} / {{ stats.total_marks|round|int }}</span><span class="stat-label">Highest</span></div>
+        <div class="stat"><span class="stat-value">{{ stats.lowest|round|int }} / {{ stats.total_marks|round|int }}</span><span class="stat-label">Lowest</span></div>
+        <div class="stat"><span class="stat-value">{{ stats.pass_count }}</span><span class="stat-label">Passed</span></div>
+        <div class="stat"><span class="stat-value">{{ stats.fail_count }}</span><span class="stat-label">Failed</span></div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Question Difficulty</h3>
+    <table>
+        <tr><th>Question</th><th>% Wrong</th><th>Answered</th></tr>
+        {% for qs in question_stats %}
+        <tr>
+            <td>{{ qs.question.text[:60] }}{% if qs.question.text|length > 60 %}...{% endif %}</td>
+            <td>{{ qs.pct_wrong }}%</td>
+            <td>{{ qs.total_answered }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="card">
+    <h3>Student Scores</h3>
+    <p class="text-muted">Each retake keeps the original result visible below it — nothing is ever overwritten.</p>
+    <form method="POST" action="{{ url_for('teacher.restart_all', exam_id=exam.id) }}" style="display:inline;"
+          onsubmit="return confirm('Restart this exam for every student who has finished it? Every existing score is preserved and stays visible, just marked as superseded — nothing is deleted.');">
+        <button class="btn btn-outline" type="submit">Restart for All Students</button>
+    </form>
+    <form method="POST" action="{{ url_for('teacher.delete_all_scores', exam_id=exam.id) }}" style="display:inline;"
+          onsubmit="return confirm('PERMANENTLY delete every finished score on this exam? This cannot be undone — there is no archive, no backup. Use \'Restart for All Students\' instead if you want to keep the old scores on record.');">
+        <button class="btn btn-danger" type="submit">Delete All Scores</button>
+    </form>
+    <table>
+        <tr><th>Student</th><th>Reg No</th><th>Score</th><th>Attempt Date</th><th>Status</th><th>Flags</th><th></th></tr>
+        {% for a in attempts %}
+        <tr {% if a.retake_granted %}style="opacity:0.6;"{% endif %}>
+            <td>{{ a.user.name }}</td>
+            <td class="mono">{{ a.user.reg_no }}</td>
+            <td>{{ a.raw_score|round|int if a.raw_score is not none else '' }} / {{ a.total_marks_snapshot|round|int if a.total_marks_snapshot is not none else exam.total_marks()|round|int }}</td>
+            <td class="mono" style="font-size:0.8rem;">{{ a.submitted_at.strftime('%d %b, %H:%M') if a.submitted_at else '' }}</td>
+            <td>
+                {% if a.retake_granted %}
+                    <span class="badge badge-muted">Superseded (retake given)</span>
+                {% elif a.status == 'submitted' %}
+                    <span class="badge badge-success">Submitted</span>
+                {% elif a.status == 'auto_submitted' %}
+                    <span class="badge badge-gold">Auto-submitted</span>
+                {% else %}
+                    <span class="badge badge-muted">{{ a.status.replace('_', ' ')|title }}</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if a.violations|length > 0 %}
+                    {% set type_counts = {} %}
+                    {% for v in a.violations %}
+                        {% if type_counts.update({v.violation_type: type_counts.get(v.violation_type, 0) + 1}) %}{% endif %}
+                    {% endfor %}
+                    {% set breakdown = type_counts.items()|list|map('join', ': ')|join(', ') %}
+                    <span class="badge badge-danger" title="{{ breakdown }}">{{ a.violations|length }} flagged</span>
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if not a.retake_granted %}
+                <form method="POST" action="{{ url_for('teacher.allow_retake', exam_id=exam.id, attempt_id=a.id) }}"
+                      onsubmit="return confirm('Allow {{ a.user.name }} to retake this exam? Their current score stays on record, just marked as superseded.');" style="display:inline;">
+                    <button class="btn btn-outline" type="submit" style="padding:5px 10px;font-size:0.78rem;">Allow Retake</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('teacher.delete_score', exam_id=exam.id, attempt_id=a.id) }}"
+                      onsubmit="return confirm('PERMANENTLY delete this score for {{ a.user.name }}? This cannot be undone — there is no way to recover it afterward.');" style="display:inline;">
+                    <button class="btn btn-danger" type="submit" style="padding:5px 10px;font-size:0.78rem;">Delete Score</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

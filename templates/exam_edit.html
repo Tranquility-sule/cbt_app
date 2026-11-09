@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ exam.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Teacher Portal</div>
+        <h2>{{ exam.title }}</h2>
+    </div>
+    <a href="{{ url_for('teacher.edit_exam_details', exam_id=exam.id) }}" class="btn btn-outline">Edit Exam Details</a>
+</div>
+<p class="text-muted">{{ exam.subject }} &middot; {{ exam.duration_minutes }} minutes</p>
+
+<div class="card">
+    <h3>Add Question</h3>
+    <form method="POST" action="{{ url_for('teacher.add_question', exam_id=exam.id) }}">
+        <label>Question Text</label>
+        <textarea name="text" rows="3" required></textarea>
+        <label>Marks</label>
+        <input type="number" name="marks" value="1" step="0.5">
+
+        <label>Options (mark the correct one)</label>
+        {% for i in range(5) %}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <input type="radio" name="correct_option" value="{{ i }}" {% if i == 0 %}checked{% endif %} style="width:auto;margin:0;">
+            <span class="mono text-muted" style="width:16px;">{{ ['A','B','C','D','E'][i] }}</span>
+            <input type="text" name="option_text" placeholder="Option {{ ['A','B','C','D','E'][i] }}{% if i == 4 %} (optional){% endif %}" style="margin:0;">
+        </div>
+        {% endfor %}
+        <br>
+        <button class="btn" type="submit">Add Question</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Or Upload Questions in Bulk (CSV)</h3>
+    <p class="text-muted">
+        Columns: <code>question, option_a, option_b, option_c, option_d, option_e, correct, marks</code>.
+        <code>option_c</code>-<code>option_e</code> and <code>marks</code> are optional.
+        <code>correct</code> should be the letter of the right answer (A-E).
+    </p>
+    <form method="POST" action="{{ url_for('teacher.bulk_add_questions', exam_id=exam.id) }}" enctype="multipart/form-data">
+        <input type="file" name="questions_file" accept=".csv" required>
+        <br><br>
+        <button class="btn btn-outline" type="submit">Upload Questions</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Or Import from a Word/PDF Document</h3>
+    <p class="text-muted">
+        Already have questions typed up in Word or PDF? Upload it and review
+        the detected questions before anything gets saved.
+    </p>
+    <a href="{{ url_for('teacher.import_document', exam_id=exam.id) }}" class="btn btn-outline">Import from Document</a>
+</div>
+
+<h3>Questions ({{ exam.questions|length }})</h3>
+{% for q in exam.questions %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <p><strong>Q{{ loop.index }}.</strong> {{ q.text }} <span class="text-muted">({{ q.marks }} marks)</span></p>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a href="{{ url_for('teacher.edit_question', exam_id=exam.id, question_id=q.id) }}" class="btn btn-outline" style="padding:6px 12px;font-size:0.8rem;">Edit</a>
+            <form method="POST" action="{{ url_for('teacher.delete_question', exam_id=exam.id, question_id=q.id) }}"
+                  onsubmit="return confirm('Delete this question? This cannot be undone.');">
+                <button class="btn btn-danger" type="submit" style="padding:6px 12px;font-size:0.8rem;">Delete</button>
+            </form>
+        </div>
+    </div>
+    <ul style="margin:0;padding-left:20px;">
+    {% for opt in q.options %}
+        <li {% if opt.is_correct %}style="color:var(--success);font-weight:600;"{% endif %}>
+            <span class="mono">{{ ['A','B','C','D','E'][loop.index0] }}.</span> {{ opt.text }}
+        </li>
+    {% endfor %}
+    </ul>
+</div>
+{% endfor %}
+
+<a href="{{ url_for('teacher.dashboard') }}" class="btn btn-outline">Done</a>
+{% endblock %}

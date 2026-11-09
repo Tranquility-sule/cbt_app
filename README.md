@@ -4,6 +4,10 @@ A web-based Computer-Based Testing (CBT) platform built entirely in **Python (Fl
 Students log in with their own registration number, write timed objective exams, and get
 their scores instantly. Teachers and admins create exams, manage students and download results.
 
+**Developer:** Sani Suleiman ([@Tranquility-sule](https://github.com/Tranquility-sule))
+
+---
+
 ## Features
 
 **Students**
@@ -19,15 +23,11 @@ their scores instantly. Teachers and admins create exams, manage students and do
 - Up to 5 options (A–E) per question; question and option shuffling per student
 - Lock/unlock exams, restrict an exam to a department
 - Results dashboard, per-question analysis, CSV and Excel export
-- Private by design: a teacher only sees and manages the exams they created; other teachers' exams are invisible to them
 - Allow retake (one student or the whole class) without losing old scores
 - Integrity log: tab switches, minimising, copy/paste and right-click attempts (informational only)
 
 **Admins**
 - Bulk-create student accounts from a name list; downloads an Excel sheet of logins
-- **Teacher accounts:** create teachers (TCH001, TCH002, ...) each with their own password, reset passwords,
-  and **Hand Over** a finished teacher's account to someone new (old exams move to the admin, results kept).
-  Capped at 15 teachers by default (`MAX_TEACHERS`)
 - Reset passwords, delete unused accounts, **find and remove duplicate accounts**,
   and issue a **fresh credentials list** for students who haven't logged in yet
 - Automatic attendance records and Excel download
@@ -39,6 +39,8 @@ their scores instantly. Teachers and admins create exams, manage students and do
 
 Python 3 · Flask · Flask-SQLAlchemy · Flask-Login · SQLite (WAL mode) · APScheduler ·
 Waitress (production server) · openpyxl · python-docx · pdfplumber · Jinja2 · vanilla JS
+
+---
 
 ## Quick start
 
@@ -75,6 +77,7 @@ firewall must allow port 5000.
 After pulling a new version, run `python migrate.py`. It adds any missing columns
 and never deletes data. **Never delete `cbt.db` to fix a "no such column" error.**
 
+---
 
 ## Adding students
 
@@ -85,6 +88,7 @@ and never deletes data. **Never delete `cbt.db` to fix a "no such column" error.
 Names that already have an account are skipped, so re-uploading can't create duplicates.
 If duplicates already exist: **Students → Clean Duplicates**, then **Fresh Credentials List**.
 
+---
 
 ## Project structure
 
@@ -93,7 +97,6 @@ app.py              App factory and startup
 run_production.py   Waitress production server
 config.py           Settings (DB path, secret key)
 models.py           Database models
-access.py           Exam ownership rules (teacher privacy)
 grading.py          Auto-grading
 shuffle.py          Per-student question/option ordering
 sweeper.py          Background auto-submit of expired attempts
@@ -107,11 +110,11 @@ templates/ static/  Jinja2 pages, CSS, images
 docs/               Detailed development notes
 ```
 
+---
 
 ## Security notes
 
 - Passwords are stored hashed (scrypt) and can only be reset, never viewed
-- Roles: admin (one account, sees everything), teacher (own exams only), student (own attempts; department-restricted exams enforced server-side)
 - Set `SECRET_KEY` (and optionally `DATABASE_URL`) as environment variables in production
 - **Never commit `cbt.db`, backups or credential spreadsheets** — they contain student data (see `.gitignore`)
 - Integrity monitoring discourages casual cheating; it is not full proctoring

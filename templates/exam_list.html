@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Exams{% endblock %}
+{% block content %}
+<div class="dashboard-hero">
+    <div class="dashboard-welcome">
+        {% with avatar_user=current_user, avatar_size=56 %}{% include "_avatar.html" %}{% endwith %}
+        <div class="welcome-text">
+            <div class="eyebrow">Student Portal</div>
+            <h2 style="margin:0;">Welcome, {{ current_user.name.split(' ')[0] }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="subject-grid">
+{% for exam in exams %}
+<div class="card subject-card card-interactive">
+    <div class="subject-card-top">
+        <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+            {% with subject_name=exam.subject %}{% include "_subject_icon.html" %}{% endwith %}
+            {{ exam.subject }}
+        </h3>
+        {% set status = exam_status.get(exam.id, 'active') %}
+        {% if status == 'done' %}
+            <span class="badge badge-success">Done</span>
+        {% elif status == 'resume' %}
+            <span class="badge badge-gold">In Progress</span>
+        {% else %}
+            <span class="badge badge-muted">Active</span>
+        {% endif %}
+    </div>
+    <div class="subject-meta">
+        {{ exam.title }}<br>
+        {% if exam.class_level %}Class: {{ exam.class_level }}<br>{% endif %}
+        {{ exam.duration_minutes }} minutes &middot; {{ exam.questions|length }} questions
+    </div>
+
+    {% if status == 'done' %}
+        <a href="{{ url_for('exam.results', attempt_id=exam.attempt_for(current_user.id).id) }}" class="btn btn-outline">View Result</a>
+    {% elif status == 'resume' %}
+        <a href="{{ url_for('exam.take_exam', attempt_id=exam.attempt_for(current_user.id).id) }}" class="btn">Resume {{ exam.subject }} Exam</a>
+    {% elif exam.is_open_now() %}
+        <form method="POST" action="{{ url_for('exam.start_exam', exam_id=exam.id) }}">
+            <button class="btn" type="submit">Start {{ exam.subject }} Exam</button>
+        </form>
+    {% elif exam.locked %}
+        <span class="badge badge-muted">Locked by teacher</span>
+    {% else %}
+        <span class="badge badge-muted">Not currently open</span>
+    {% endif %}
+</div>
+{% else %}
+<div class="card text-muted">No exams available yet.</div>
+{% endfor %}
+</div>
+{% endblock %}

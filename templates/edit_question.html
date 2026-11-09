@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Edit Question{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">{{ exam.title }}</div>
+        <h2>Edit Question</h2>
+    </div>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <label>Question Text</label>
+        <textarea name="text" rows="3" required>{{ question.text }}</textarea>
+        <label>Marks</label>
+        <input type="number" name="marks" value="{{ question.marks }}" step="0.5">
+
+        <label>Options (mark the correct one)</label>
+        {% for i in range(5) %}
+        {% set opt = options[i] if i < options|length else None %}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <input type="radio" name="correct_option" value="{{ i }}"
+                   {% if opt and opt.is_correct %}checked{% elif not opt and i == 0 and not options %}checked{% endif %}
+                   style="width:auto;margin:0;">
+            <span class="mono text-muted" style="width:16px;">{{ ['A','B','C','D','E'][i] }}</span>
+            <input type="text" name="option_text" value="{{ opt.text if opt else '' }}"
+                   placeholder="Option {{ ['A','B','C','D','E'][i] }}{% if i == 4 %} (optional){% endif %}" style="margin:0;">
+        </div>
+        {% endfor %}
+        <br>
+        <button class="btn" type="submit">Save Changes</button>
+        <a href="{{ url_for('teacher.edit_exam', exam_id=exam.id) }}" class="btn btn-outline">Cancel</a>
+    </form>
+</div>
+{% endblock %}

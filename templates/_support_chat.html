@@ -1,0 +1,69 @@
+<div id="supportChatToggle" class="support-chat-toggle" onclick="toggleSupportChat()">
+    <span id="supportChatIcon">💬</span>
+</div>
+
+<div id="supportChatPanel" class="support-chat-panel" style="display:none;">
+    <div class="support-chat-header">
+        <span>Support Assistant</span>
+        <span style="cursor:pointer;" onclick="toggleSupportChat()">✕</span>
+    </div>
+    <div class="support-chat-messages" id="supportChatMessages">
+        <div class="support-chat-bubble bot">
+            Hi! I can help with login, password, and how-to questions. What do you need help with?
+        </div>
+        <div class="support-quick-questions">
+            <button type="button" onclick="askSupportQuick('I forgot my password')">Forgot password</button>
+            <button type="button" onclick="askSupportQuick('How do I start an exam')">Starting an exam</button>
+            <button type="button" onclick="askSupportQuick('My internet disconnected')">Lost connection mid-exam</button>
+            <button type="button" onclick="askSupportQuick('How do I check my result')">Checking results</button>
+        </div>
+    </div>
+    <form id="supportChatForm" class="support-chat-input-row">
+        <input type="text" id="supportChatInput" placeholder="Type a question..." autocomplete="off">
+        <button type="submit" class="btn" style="padding:8px 14px;">Send</button>
+    </form>
+</div>
+
+<script>
+function toggleSupportChat() {
+    const panel = document.getElementById('supportChatPanel');
+    panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+
+function appendSupportMessage(text, sender) {
+    const messages = document.getElementById('supportChatMessages');
+    const bubble = document.createElement('div');
+    bubble.className = 'support-chat-bubble ' + sender;
+    bubble.textContent = text;
+    messages.appendChild(bubble);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+async function sendSupportMessage(message) {
+    if (!message.trim()) return;
+    appendSupportMessage(message, 'user');
+    try {
+        const res = await fetch('/support/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+        });
+        const data = await res.json();
+        appendSupportMessage(data.answer, 'bot');
+    } catch (e) {
+        appendSupportMessage("Sorry, I couldn't reach the support service right now.", 'bot');
+    }
+}
+
+function askSupportQuick(message) {
+    sendSupportMessage(message);
+}
+
+document.getElementById('supportChatForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const input = document.getElementById('supportChatInput');
+    const message = input.value;
+    input.value = '';
+    sendSupportMessage(message);
+});
+</script>

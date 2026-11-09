@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Results{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:20px auto;text-align:center;">
+    {% set size = 48 %}
+    {% include "_seal.html" with context %}
+    <h2>{{ attempt.exam.title }}</h2>
+    <p class="text-muted">{{ attempt.exam.subject }}</p>
+
+    <p>
+        {% if attempt.status == 'submitted' %}
+            <span class="badge badge-success">Submitted</span>
+        {% elif attempt.status == 'auto_submitted' %}
+            <span class="badge badge-gold">Auto-submitted (time expired)</span>
+        {% else %}
+            <span class="badge badge-muted">{{ attempt.status.replace('_', ' ')|title }}</span>
+        {% endif %}
+    </p>
+
+    {% if show_details %}
+        <div style="margin:20px 0;">
+            {% if attempt.raw_score is not none and attempt.total_marks_snapshot is not none %}
+                <span class="stat-value" style="font-size:2.4rem;">{{ attempt.raw_score|round|int }} / {{ attempt.total_marks_snapshot|round|int }}</span>
+            {% else %}
+                <span class="stat-value" style="font-size:1.1rem;color:var(--muted);">Score not yet available for this older result — ask your admin to run the score update.</span>
+            {% endif %}
+            {% if attempt.score is not none and attempt.score >= attempt.exam.pass_mark %}
+                <span class="badge badge-success">Pass</span>
+            {% elif attempt.score is not none %}
+                <span class="badge badge-danger">Fail</span>
+            {% endif %}
+        </div>
+    {% else %}
+        <p class="text-muted">Results have not been published yet. Check back later.</p>
+    {% endif %}
+
+    <a href="{{ url_for('exam.list_exams') }}" class="btn btn-outline">Back to Exams</a>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Review Imported Questions{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">{{ exam.title }}</div>
+        <h2>Review Before Importing</h2>
+    </div>
+</div>
+
+<div class="card">
+    <p class="text-muted">
+        Found {{ questions|length }} question(s). Nothing has been saved yet —
+        check the detected correct answer for each question (marked with the
+        radio button), uncheck any question you don't want to import, then
+        confirm at the bottom. Questions where no answer could be detected are
+        flagged — you must pick one before it can be imported.
+    </p>
+</div>
+
+<form method="POST" action="{{ url_for('teacher.confirm_document_import', exam_id=exam.id) }}">
+    <input type="hidden" name="question_count" value="{{ questions|length }}">
+
+    {% for q in questions %}
+    {% set qi = loop.index0 %}
+    <div class="card" style="{% if not q.detected_correct %}border-top-color:var(--danger);{% endif %}">
+        <label style="display:flex;align-items:flex-start;gap:10px;font-weight:400;color:var(--text);margin-top:0;">
+            <input type="checkbox" name="q{{ qi }}_include" checked style="width:auto;margin-top:3px;">
+            <span>
+                <strong>Q{{ loop.index }}.</strong> {{ q.text }}
+                {% if not q.detected_correct %}
+                    <span class="badge badge-danger" style="margin-left:8px;">No answer detected — pick one below</span>
+                {% endif %}
+            </span>
+        </label>
+        <input type="hidden" name="q{{ qi }}_text" value="{{ q.text }}">
+
+        {% for opt in q.options %}
+        <label class="option-row">
+            <input type="radio" name="q{{ qi }}_correct" value="{{ opt.letter }}"
+                   {% if q.detected_correct == opt.letter %}checked{% endif %}>
+            <span class="mono text-muted" style="margin-right:8px;">{{ opt.letter }}.</span>
+            {{ opt.text }}
+        </label>
+        <input type="hidden" name="q{{ qi }}_option_{{ opt.letter }}" value="{{ opt.text }}">
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    <button class="btn" type="submit">Confirm &amp; Import Checked Questions</button>
+    <a href="{{ url_for('teacher.edit_exam', exam_id=exam.id) }}" class="btn btn-outline">Cancel</a>
+</form>
+{% endblock %}

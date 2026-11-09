@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}{{ exam.title }}{% endblock %}
+{% block chat_widget %}{% endblock %}
+{% block content %}
+
+<div class="timer" id="timer">--:--</div>
+<div class="sync-indicator" id="syncIndicator">All answers saved</div>
+<div id="violationBanner" class="flash flash-error" style="display:none;"></div>
+
+<div class="page-header">
+    <div>
+        <div class="eyebrow">{{ exam.subject }}</div>
+        <h2>{{ exam.title }}</h2>
+    </div>
+</div>
+<p class="text-muted">Answer all questions, then click Submit.</p>
+
+<form id="examForm">
+{% for q in questions %}
+<div class="card question-block" data-question-id="{{ q.id }}">
+    <p><strong>Q{{ loop.index }}.</strong> {{ q.text }}</p>
+    {% if q.image_path %}<img src="{{ q.image_path }}" style="max-width:100%;margin:10px 0;">{% endif %}
+    {% for opt in q.options %}
+    <label class="option-row">
+        <input type="radio" name="q_{{ q.id }}" value="{{ opt.id }}"
+               {% if q.selected_option_id == opt.id %}checked{% endif %}
+               onchange="saveAnswer({{ q.id }}, {{ opt.id }})">
+        <span class="mono text-muted" style="margin-right:8px;">{{ ['A','B','C','D','E'][loop.index0] }}.</span>
+        {{ opt.text }}
+    </label>
+    {% endfor %}
+</div>
+{% endfor %}
+</form>
+
+<button class="btn" id="submitBtn" onclick="submitExam()">Submit Exam</button>
+
+<script>
+const attemptId = {{ attempt.id }};
+const saveUrl = "{{ url_for('exam.save_answer', attempt_id=attempt.id) }}";
+const heartbeatUrl = "{{ url_for('exam.heartbeat', attempt_id=attempt.id) }}";
+const submitUrl = "{{ url_for('exam.submit_exam', attempt_id=attempt.id) }}";
+
+let secondsRemaining = {{ seconds_remaining }};
+const localKey = "cbt_attempt_" + attemptId;
+
+// ---- Local answer cache (survives reload/crash even before the server
+// confirms the save) ----
+function loadLocalAnswers() {
+    try {
+        return JSON.parse(localStorage.getItem(localKey) || "{}");
+    } catch (e) {
+        return {};
+    }
+}
+function storeLocalAnswer(questionId, optionId) {
+    const cache = loadLocalAnswers();
+    cache[questionId] = optionId;
+    localStorage.setItem(localKey, JSON.stringify(cache));
+}
+
+// Re-apply any locally cached selections the server hasn't confirmed yet
+// (covers the case where a save failed right before a crash/reload).
+(function resumeFromLocalCache() {
+    const cache = loadLocalAnswers();
+    for (const qId in cache) {
+        const input = document.querySelector(`input[name="q_${qId}"][value="${cache[qId]}"]`);
+        if (input && !input.checked) {
+            input.checked = true;
+        }
+    }
+})();
+
+// ---- Timer: server value is authoritative. We count down locally between
+// heartbeats purely for a smooth display, then resync every poll. ----
+const timerEl = document.getElementById("timer");
+function renderTimer() {
+    const m = Math.floor(secondsRemaining / 60);
+    const s = secondsRemaining % 60;
+    timerEl.textContent = `${m}:${s.toString().padStart(2, "0")} remaining`;
+    if (secondsRemaining <= 60) timerEl.classList.add("low-time");
+}
+renderTimer();
+
+setInterval(() => {
+    if (secondsRemaining > 0) {
+        secondsRemaining -= 1;
+        renderTimer();
+    }
+}, 1000);
+
+// Poll the server periodically -- this is what actually enforces expiry,
+// not the client-side countdown above (which is cosmetic only).
+async function heartbeat() {
+    try {
+        const res = await fetch(heartbeatUrl);
+        const data = await res.json();
+        if (data.expired) {
+            window.location.href = data.redirect;
+            return;
+        }
+        secondsRemaining = data.seconds_remaining;
+        renderTimer();
+        setSyncStatus(true);
+    } catch (e) {
+        setSyncStatus(false);
+    }
+}
+setInterval(heartbeat, 15000);
+
+// ---- Answer autosave with retry queue for flaky exam-hall networks ----
+const syncIndicator = document.getElementById("syncIndicator");
+function setSyncStatus(online) {
+    if (online) {
+        syncIndicator.textContent = "All answers saved";
+        syncIndicator.classList.remove("offline");
+    } else {
+        syncIndicator.textContent = "Reconnecting... your answers are saved locally";
+        syncIndicator.classList.add("offline");
+    }
+}
+
+let pendingRetries = {};
+
+async function saveAnswer(questionId, optionId) {
+    storeLocalAnswer(questionId, optionId);
+    attemptSave(questionId, optionId, 0);
+}
+
+async function attemptSave(questionId, optionId, retryCount) {
+    try {
+        const res = await fetch(saveUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question_id: questionId, option_id: optionId }),
+        });
+
+        if (res.status === 409) {
+            const data = await res.json();
+            if (data.redirect) {
+                window.location.href = data.redirect;
+                return;
+            }
+        }
+
+        if (!res.ok) throw new Error("save failed");
+
+        const data = await res.json();
+        secondsRemaining = data.seconds_remaining;
+        renderTimer();
+        setSyncStatus(true);
+        delete pendingRetries[questionId];
+    } catch (e) {
+        setSyncStatus(false);
+        // Exponential backoff retry, capped at 30s, so a temporarily
+        // disconnected exam-hall PC keeps trying without hammering the server.
+        const delay = Math.min(30000, 1000 * Math.pow(2, retryCount));
+        clearTimeout(pendingRetries[questionId]);
+        pendingRetries[questionId] = setTimeout(
+            () => attemptSave(questionId, optionId, retryCount + 1),
+            delay
+        );
+    }
+}
+
+// On page load, flush any answers that were cached locally but never
+// confirmed by the server (e.g. student refreshed mid-save).
+(function flushUnconfirmedOnLoad() {
+    const cache = loadLocalAnswers();
+    for (const qId in cache) {
+        attemptSave(parseInt(qId), cache[qId], 0);
+    }
+})();
+
+async function submitExam() {
+    if (!confirm("Submit your exam now? You cannot change answers after this.")) return;
+    document.getElementById("submitBtn").disabled = true;
+    try {
+        const res = await fetch(submitUrl, { method: "POST" });
+        localStorage.removeItem(localKey);
+        window.location.href = res.url;
+    } catch (e) {
+        alert("Could not submit right now — check your connection and try again.");
+        document.getElementById("submitBtn").disabled = false;
+    }
+}
+
+window.addEventListener("beforeunload", (e) => {
+    e.preventDefault();
+    e.returnValue = "";
+});
+
+// ---- Integrity monitoring (informational only — never auto-submits) ----
+const violationUrl = "{{ url_for('exam.log_violation', attempt_id=attempt.id) }}";
+const violationBanner = document.getElementById("violationBanner");
+
+function showViolationWarning(message) {
+    violationBanner.textContent = message;
+    violationBanner.style.display = "block";
+    clearTimeout(showViolationWarning._t);
+    showViolationWarning._t = setTimeout(() => { violationBanner.style.display = "none"; }, 6000);
+}
+
+async function logViolation(type, message) {
+    showViolationWarning(message);
+    try {
+        await fetch(violationUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type }),
+        });
+    } catch (e) {
+        // If this fails (e.g. offline), it's not critical — the exam-taking
+        // flow itself already has its own retry/offline handling for answers.
+    }
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        logViolation("tab_switch", "You switched away from this tab. This has been recorded.");
+    }
+});
+
+window.addEventListener("blur", () => {
+    logViolation("window_blur", "You left this window. This has been recorded.");
+});
+
+document.addEventListener("copy", (e) => {
+    e.preventDefault();
+    logViolation("copy_attempt", "Copying exam content is disabled and has been recorded.");
+});
+
+document.addEventListener("cut", (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener("paste", (e) => {
+    // Only block paste inside the exam question area, not in case any
+    // browser-native UI (like a password manager) needs it elsewhere.
+    if (e.target.closest && e.target.closest("#examForm")) {
+        e.preventDefault();
+        logViolation("paste_attempt", "Pasting is disabled and has been recorded.");
+    }
+});
+
+document.addEventListener("contextmenu", (e) => {
+    if (e.target.closest && e.target.closest("#examForm")) {
+        e.preventDefault();
+        logViolation("right_click", "Right-click is disabled during the exam and has been recorded.");
+    }
+});
+</script>
+{% endblock %}

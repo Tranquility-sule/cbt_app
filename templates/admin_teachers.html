@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Teachers{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Admin</div>
+        <h2>Teachers</h2>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Add a Teacher <span class="text-muted" style="font-size:0.85rem;">({{ teachers|length }} / {{ max_teachers }})</span></h3>
+    <p class="text-muted">
+        Each teacher gets their own registration number and password. A teacher
+        can only see and manage the exams they created; admins see everything.
+        Limit: {{ limit }} teacher accounts ({{ teachers|length }} used). When a teacher is
+        finished, use <strong>Hand Over</strong> to give their account to someone new.
+    </p>
+    <form method="POST">
+        <label>Full name</label>
+        <input type="text" name="name" placeholder="e.g. Mrs. Aisha Bello" required>
+        <br><br>
+        <button class="btn" type="submit">Create Teacher Account</button>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <tr><th>Name</th><th>Reg No.</th><th>Exams</th><th>Password Status</th><th></th></tr>
+        {% for t in teachers %}
+        <tr>
+            <td>{{ t.name }}</td>
+            <td class="mono">{{ t.reg_no }}</td>
+            <td>{{ counts[t.id] }}</td>
+            <td>
+                {% if t.must_change_password %}
+                    <span class="badge badge-gold">Awaiting first login</span>
+                {% else %}
+                    <span class="badge badge-success">Active</span>
+                {% endif %}
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('admin.reset_teacher_password', user_id=t.id) }}"
+                      onsubmit="return confirm('Reset password for {{ t.name }}? Their old password stops working immediately.');"
+                      style="display:inline;">
+                    <button class="btn btn-outline" type="submit" style="padding:6px 12px;font-size:0.8rem;">Reset Password</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.handover_teacher', user_id=t.id) }}"
+                      onsubmit="var n=prompt('Hand over {{ t.reg_no }} ({{ t.name }}) to which new teacher? Their exams move to the admin and the old password stops working.'); if(!n||!n.trim()){return false;} this.new_name.value=n.trim(); return true;"
+                      style="display:inline;">
+                    <input type="hidden" name="new_name" value="">
+                    <button class="btn btn-outline" type="submit" style="padding:6px 12px;font-size:0.8rem;">Hand Over</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.handover_teacher', user_id=t.id) }}"
+                      onsubmit="return confirm('Hand over {{ t.reg_no }} to the new teacher? {{ t.name }}\'s exams move to the admin and the old password stops working.');"
+                      style="display:inline;">
+                    <input type="text" name="new_name" placeholder="New teacher's name" required style="width:160px;padding:6px;font-size:0.8rem;">
+                    <button class="btn btn-outline" type="submit" style="padding:6px 12px;font-size:0.8rem;">Hand Over</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.delete_teacher', user_id=t.id) }}"
+                      onsubmit="return confirm('Permanently delete {{ t.name }}?');" style="display:inline;">
+                    <button class="btn btn-danger" type="submit" style="padding:6px 12px;font-size:0.8rem;">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted">No teachers yet.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

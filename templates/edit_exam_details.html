@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Edit Exam Details{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Teacher Portal</div>
+        <h2>Edit Exam Details</h2>
+    </div>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <label>Title</label>
+        <input type="text" name="title" value="{{ exam.title }}" required>
+        <label>Subject</label>
+        <input type="text" name="subject" value="{{ exam.subject }}" required>
+        <label>Class (optional, e.g. SS3)</label>
+        <input type="text" name="class_level" value="{{ exam.class_level or '' }}">
+        <label>Restrict to Department (optional)</label>
+        <input type="text" name="restricted_department" value="{{ exam.restricted_department or '' }}">
+        <label>Duration (minutes)</label>
+        <input type="number" name="duration_minutes" value="{{ exam.duration_minutes }}" required>
+        <label>Pass Mark (%)</label>
+        <input type="number" name="pass_mark" value="{{ exam.pass_mark }}" step="0.1">
+        <br><br>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--text);">
+            <input type="checkbox" name="shuffle_questions" {% if exam.shuffle_questions %}checked{% endif %}> Shuffle question order per student
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--text);">
+            <input type="checkbox" name="shuffle_options" {% if exam.shuffle_options %}checked{% endif %}> Shuffle answer options per student
+        </label>
+        <br>
+        {% if exam.attempts|length > 0 %}
+        <div class="flash flash-info">
+            {{ exam.attempts|length }} student attempt(s) already exist for this exam.
+            Changing the duration or shuffle settings only affects attempts started
+            from now on — it won't change how already-submitted attempts were graded.
+        </div>
+        {% endif %}
+        <button class="btn" type="submit">Save Changes</button>
+        <a href="{{ url_for('teacher.edit_exam', exam_id=exam.id) }}" class="btn btn-outline">Cancel</a>
+    </form>
+</div>
+{% endblock %}

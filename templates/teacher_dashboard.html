@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Teacher Dashboard{% endblock %}
+{% block content %}
+<div class="dashboard-hero">
+    <div class="page-header" style="border:none;margin:0;padding:0;position:relative;z-index:1;">
+        <div>
+            <div class="eyebrow" style="color:var(--gold);">Teacher Portal</div>
+            <h2 style="color:#fff;margin:0;">Your Exams</h2>
+        </div>
+        <a href="{{ url_for('teacher.new_exam') }}" class="btn" style="background:var(--gold);border-color:var(--gold);color:var(--ink);">+ New Exam</a>
+    </div>
+</div>
+
+{% for exam in exams %}
+<div class="card">
+    <div class="subject-card-top">
+        <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+            {% with subject_name=exam.subject %}{% include "_subject_icon.html" %}{% endwith %}
+            {{ exam.title }}
+        </h3>
+        {% if exam.locked %}
+            <span class="badge badge-danger">Locked</span>
+        {% else %}
+            <span class="badge badge-success">Unlocked</span>
+        {% endif %}
+    </div>
+    <p class="text-muted">{{ exam.subject }} &middot; {{ exam.questions|length }} questions &middot; {{ exam.duration_minutes }} min</p>
+    {% if exam.restricted_department %}
+        <p><span class="badge badge-gold">Restricted: {{ exam.restricted_department }}</span></p>
+    {% endif %}
+    <a href="{{ url_for('teacher.edit_exam', exam_id=exam.id) }}" class="btn btn-outline">Manage Questions</a>
+    <a href="{{ url_for('teacher.exam_results', exam_id=exam.id) }}" class="btn btn-outline">View Results</a>
+    <a href="{{ url_for('admin.view_attendance', exam_id=exam.id) }}" class="btn btn-outline">View Attendance</a>
+    <form method="POST" action="{{ url_for('teacher.toggle_lock', exam_id=exam.id) }}" style="display:inline;">
+        {% if exam.locked %}
+            <button class="btn" type="submit">Unlock for Students</button>
+        {% else %}
+            <button class="btn btn-danger" type="submit">Lock</button>
+        {% endif %}
+    </form>
+    <form method="POST" action="{{ url_for('teacher.delete_exam', exam_id=exam.id) }}" style="display:inline;"
+          onsubmit="return confirm('Delete \"{{ exam.title }}\" permanently? This cannot be undone.');">
+        <button class="btn btn-danger" type="submit">Delete Exam</button>
+    </form>
+</div>
+{% else %}
+<div class="card text-muted">You haven't created any exams yet.</div>
+{% endfor %}
+{% endblock %}

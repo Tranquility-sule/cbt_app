@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Admin</div>
+        <h2>All Students</h2>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.clean_duplicates') }}" class="btn btn-outline">Clean Duplicates</a>
+        <form method="POST" action="{{ url_for('admin.fresh_credentials') }}" style="display:inline;"
+              onsubmit="return confirm('This resets the password of every student who has NOT logged in yet and downloads one new list. Old passwords stop working. Continue?');">
+            <button class="btn btn-outline" type="submit">Fresh Credentials List</button>
+        </form>
+        <a href="{{ url_for('admin.bulk_create_students') }}" class="btn">+ Bulk Add Students</a>
+    </div>
+</div>
+
+<div class="card" style="border-top-color:var(--danger);">
+    <h3>Backup Your Database</h3>
+    <p class="text-muted">
+        Every student, exam, attendance record, and result lives in a single
+        database file. Download a backup regularly — especially before and
+        after exam day — so you never lose data if the server folder is
+        ever replaced or reset.
+    </p>
+    <a href="{{ url_for('admin.download_backup') }}" class="btn btn-outline">Download Backup Now</a>
+</div>
+
+<div class="card">
+    <table>
+        <tr><th>Name</th><th>Reg No.</th><th>Department</th><th>Password Status</th><th></th></tr>
+        {% for s in students %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td class="mono">{{ s.reg_no }}</td>
+            <td>{{ s.department or '—' }}</td>
+            <td>
+                {% if s.must_change_password %}
+                    <span class="badge badge-gold">Awaiting first login</span>
+                {% else %}
+                    <span class="badge badge-success">Active</span>
+                {% endif %}
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('admin.reset_student_password', user_id=s.id) }}"
+                      onsubmit="return confirm('Reset password for {{ s.name }}? Their old password will stop working immediately.');"
+                      style="display:inline;">
+                    <button class="btn btn-outline" type="submit" style="padding:6px 12px;font-size:0.8rem;">Reset Password</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.delete_student', user_id=s.id) }}"
+                      onsubmit="return confirm('Permanently delete {{ s.name }} ({{ s.reg_no }})? This cannot be undone.');"
+                      style="display:inline;">
+                    <button class="btn btn-danger" type="submit" style="padding:6px 12px;font-size:0.8rem;">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted">No students yet. Use "Bulk Add Students" to create accounts.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

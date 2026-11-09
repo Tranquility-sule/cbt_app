@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Bulk Create Students{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="eyebrow">Admin</div>
+        <h2>Bulk Create Student Accounts</h2>
+    </div>
+</div>
+<div class="card">
+    <p class="text-muted">
+        Upload a CSV with a <code>name</code> column (or a plain text file with
+        one student name per line). Each student gets a unique registration
+        number and a randomly generated password, so they can all log in
+        independently and simultaneously on exam day. A spreadsheet with
+        the generated logins will download automatically — keep it secure
+        and distribute it to students before the exam.
+    </p>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Student List (.csv or .txt)</label>
+        <input type="file" name="student_list" accept=".csv,.txt" required>
+
+        <label>Registration No. Prefix</label>
+        <input type="text" name="prefix" value="STU" placeholder="e.g. STU">
+
+        <label>Department (optional)</label>
+        <input type="text" name="department" placeholder="e.g. Computer Science">
+        <p class="text-muted" style="margin-top:-8px;">
+            If set, every student in this upload is tagged with this department.
+            Use this together with a "Restrict to Department" exam setting to
+            limit an exam to only these students.
+        </p>
+
+        {% if schools %}
+        <label>School (optional)</label>
+        <select name="school_id">
+            <option value="">-- None --</option>
+            {% for s in schools %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <label style="display:flex;gap:8px;align-items:center;font-weight:normal;">
+            <input type="checkbox" name="allow_same" value="1" style="width:auto;">
+            Allow names that already have an account (not recommended)
+        </label>
+        <p class="text-muted">By default, names that already exist (or repeat in the file) are skipped, so re-uploading a list can't create duplicates.</p>
+        <br>
+        <button class="btn" type="submit">Create Accounts &amp; Download Logins</button>
+    </form>
+</div>
+{% endblock %}

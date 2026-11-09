@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="card" style="max-width:440px;margin:20px auto;text-align:center;">
+    {% with avatar_user=current_user, avatar_size=96 %}{% include "_avatar.html" %}{% endwith %}
+    <h2 style="margin-top:14px;">{{ current_user.name }}</h2>
+    <p class="mono text-muted">{{ current_user.reg_no }}</p>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
+
+    <form method="POST" enctype="multipart/form-data" style="text-align:left;">
+        <label>Profile Photo (optional)</label>
+        <p class="text-muted" style="margin-top:-4px;">
+            PNG or JPG, up to 3MB. Purely cosmetic — you don't need one to use the system.
+        </p>
+        <input type="file" name="photo" accept=".png,.jpg,.jpeg">
+        <br><br>
+        <button class="btn" type="submit" style="width:100%;justify-content:center;">Upload Photo</button>
+    </form>
+</div>
+{% endblock %}

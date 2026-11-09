@@ -1,0 +1,10 @@
+{# Circular seal mark — the signature element of the design system.
+   size: pixel size (default 40). Used small in the header, large on login. #}
+<svg class="seal-mark" width="{{ size|default(40) }}" height="{{ size|default(40) }}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="47" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="1"/>
+    <path d="M 50 22 L 56 40 L 75 40 L 60 51 L 66 69 L 50 58 L 34 69 L 40 51 L 25 40 L 44 40 Z"
+          fill="currentColor"/>
+    <text x="50" y="88" text-anchor="middle" font-family="'JetBrains Mono', monospace"
+          font-size="9" letter-spacing="2" fill="currentColor">CBT</text>
+</svg>
